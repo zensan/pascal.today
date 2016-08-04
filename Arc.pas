@@ -20,6 +20,8 @@ type
     constructor Create(AValue: T); overload;
     class function Create: Arc<T>; overload; static;
 
+    property Value: T read GetValue;
+    
     class operator Implicit(AFrom: T): Arc<T>;
     class operator Implicit(AFrom: Arc<T>): T;
   end;
