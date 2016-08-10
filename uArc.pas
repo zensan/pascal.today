@@ -100,13 +100,8 @@ end;
 
 class operator Arc<T>.Implicit(AFrom: T): Arc<T>;
 begin
-  try
-    Result.FValue := AFrom;
-    Result.FObjectOwner := TArcHolder.Create(AFrom);
-  except
-    AFrom.Free;
-    raise;
-  end;
+  Result.FValue := AFrom;
+  Result.FObjectOwner := TArcHolder.Create(AFrom);
 end;
 
 class operator Arc<T>.Implicit(AFrom: Arc<T>): T;
