@@ -7,8 +7,8 @@ uses
   System.Classes,
   System.Generics.Collections,
   Vcl.Controls,
-  Vcl.Forms,
-  Winapi.Messages;
+  Winapi.Messages,
+  Winapi.Windows;
 
 type
   /// <summary>
@@ -52,28 +52,21 @@ type
       procedure Release;
       destructor Destroy; override;
     end;
-
-    /// <summary>
-    ///   The invisible form which processes the messages and
-    ///   calls the queue procedures.
-    /// </summary>
-    TQueueHandler = class(TCustomForm)
-    protected
-      /// <summary>
-      ///   Custom window procedure to process the queue.
-      /// </summary>
-      procedure WndProc(var Message: TMessage); override;
-    end;
-
   private class var
     /// <summary>
     ///   Holds the list of enqueued procedures.
     /// </summary>
     FList: TList<TQueueEntry>;
     /// <summary>
-    ///   The form which processes the messages.
+    ///   The invisible window which processes the messages and
+    ///   calls the queue procedures.
     /// </summary>
-    FHandler: TQueueHandler;
+    FQueueHWND: HWND;
+   private
+    /// <summary>
+    ///   Custom window procedure to process the queue.
+    /// </summary>
+    class procedure WndProc(var AMessage: TMessage);
   public
     /// <summary>
     ///   Procedure to enqueue the procedure for later execution in message queue.
@@ -84,15 +77,13 @@ type
 
 implementation
 
-uses
-  Winapi.Windows;
-
 { ProcQueue }
 
 class destructor ProcQueue.Destroy;
 begin
   { Release the list and handler }
-  FHandler.Free;
+  if FQueueHWND <> 0 then
+    DeallocateHWnd(FQueueHWND);
   FList.Free;
 end;
 
@@ -102,14 +93,14 @@ begin
     begin
       { Lazy create the list ad handler }
       FList := TList<TQueueEntry>.Create;
-      FHandler := TQueueHandler.CreateNew(nil);
+      FQueueHWND := AllocateHWnd(WndProc);
     end;
 
   { Add entry to the queue }
   FList.Add(TQueueEntry.Create(AProc, AOwner));
 
   { Post the message to the handler }
-  PostMessage(FHandler.Handle, WM_USER, 0, 0);
+  PostMessage(FQueueHWND, WM_USER, 0, 0);
 end;
 
 { ProcQueue.TQueueProcOwner }
@@ -166,11 +157,16 @@ end;
 
 { ProcQueue.TQueueHandler }
 
-procedure ProcQueue.TQueueHandler.WndProc(var Message: TMessage);
+class procedure ProcQueue.WndProc(var AMessage: TMessage);
 var
   LEntry: TQueueEntry;
 begin
-  inherited;
+  if AMessage.Msg <> WM_USER then
+    begin
+      DefWindowProc(FQueueHWND, AMessage.Msg, AMessage.WParam, AMessage.LParam);
+      Exit;
+    end;
+
   { If no events queued then exit }
   if FList.Count = 0 then
     Exit;
