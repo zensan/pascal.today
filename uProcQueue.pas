@@ -3,18 +3,21 @@ unit uProcQueue;
 interface
 
 uses
-  System.SysUtils,
-  System.Classes,
-  System.Generics.Collections,
+  {$IFDEF MSWINDOWS}
   Vcl.Controls,
   Winapi.Messages,
-  Winapi.Windows;
+  Winapi.Windows,
+  {$ENDIF}
+  System.Classes,
+  System.SysUtils,
+  System.Generics.Collections;
 
 type
   /// <summary>
   ///   Class provides the functionality to queue procedure for later execution in the windows message queue.
   /// </summary>
   ProcQueue = class sealed
+  {$IFDEF MSWINDOWS}
   private type
     TQueueProcOwner = class;
 
@@ -62,33 +65,47 @@ type
     ///   calls the queue procedures.
     /// </summary>
     FQueueHWND: HWND;
-   private
+  {$ENDIF}
+  private
+    {$IFDEF MSWINDOWS}
     /// <summary>
     ///   Custom window procedure to process the queue.
     /// </summary>
     class procedure WndProc(var AMessage: TMessage);
+    {$ENDIF}
   public
     /// <summary>
     ///   Procedure to enqueue the procedure for later execution in message queue.
     /// </summary>
-    class procedure Enqueue(const AProc: TProc; const AOwner: TComponent = nil);
+    class procedure Enqueue(const AProc: TProc{$IFDEF MSWINDOWS}; const AOwner: TComponent = nil{$ENDIF});
+    {$IFDEF MSWINDOWS}
     class destructor Destroy;
+    {$ENDIF}
   end;
 
 implementation
 
+{$IFNDEF MSWINDOWS}
+uses
+  System.Threading;
+{$ENDIF}
+
 { ProcQueue }
 
+{$IFDEF MSWINDOWS}
 class destructor ProcQueue.Destroy;
 begin
   { Release the list and handler }
   if FQueueHWND <> 0 then
     DeallocateHWnd(FQueueHWND);
+
   FList.Free;
 end;
+{$ENDIF}
 
-class procedure ProcQueue.Enqueue(const AProc: TProc; const AOwner: TComponent);
+class procedure ProcQueue.Enqueue(const AProc: TProc{$IFDEF MSWINDOWS}; const AOwner: TComponent{$ENDIF});
 begin
+  {$IFDEF MSWINDOWS}
   if FList = nil then
     begin
       { Lazy create the list ad handler }
@@ -101,10 +118,22 @@ begin
 
   { Post the message to the handler }
   PostMessage(FQueueHWND, WM_USER, 0, 0);
+
+  {$ELSE}
+
+  TTask.Run(
+    procedure
+    begin
+      TThread.Queue(nil,
+        procedure
+        begin
+          AProc;
+        end)
+    end)
+  {$ENDIF}
 end;
 
-{ ProcQueue.TQueueProcOwner }
-
+{$IFDEF MSWINDOWS}
 destructor ProcQueue.TQueueProcOwner.Destroy;
 var
   i: Integer;
@@ -129,7 +158,9 @@ begin
 
   inherited;
 end;
+{$ENDIF}
 
+{$IFDEF MSWINDOWS}
 procedure ProcQueue.TQueueProcOwner.Release;
 begin
   { Check for nil }
@@ -142,9 +173,9 @@ begin
   { Free the instance }
   Free;
 end;
+{$ENDIF}
 
-{ ProcQueue.TQueueEntry }
-
+{$IFDEF MSWINDOWS}
 constructor ProcQueue.TQueueEntry.Create(const AProc: TProc; const AOwner: TComponent);
 begin
   Proc := AProc;
@@ -154,9 +185,9 @@ begin
   else
     Owner := TQueueProcOwner.Create(AOwner)
 end;
+{$ENDIF}
 
-{ ProcQueue.TQueueHandler }
-
+{$IFDEF MSWINDOWS}
 class procedure ProcQueue.WndProc(var AMessage: TMessage);
 var
   LEntry: TQueueEntry;
@@ -183,5 +214,6 @@ begin
   { Call the enqueued procedure }
   LEntry.Proc();
 end;
+{$ENDIF}
 
 end.
