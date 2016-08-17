@@ -30,7 +30,7 @@ type
       ///   Reference
       /// </summary>
       Owner: TQueueProcOwner;
-      constructor Create(AProc: TProc; AOwner: TComponent);
+      constructor Create(const AProc: TProc; const AOwner: TComponent);
     end;
 
     /// <summary>
@@ -52,7 +52,7 @@ type
       procedure Release;
       destructor Destroy; override;
     end;
-  private class var
+  private class threadvar
     /// <summary>
     ///   Holds the list of enqueued procedures.
     /// </summary>
@@ -71,7 +71,7 @@ type
     /// <summary>
     ///   Procedure to enqueue the procedure for later execution in message queue.
     /// </summary>
-    class procedure Enqueue(AProc: TProc; AOwner: TComponent = nil);
+    class procedure Enqueue(const AProc: TProc; const AOwner: TComponent = nil);
     class destructor Destroy;
   end;
 
@@ -87,7 +87,7 @@ begin
   FList.Free;
 end;
 
-class procedure ProcQueue.Enqueue(AProc: TProc; AOwner: TComponent);
+class procedure ProcQueue.Enqueue(const AProc: TProc; const AOwner: TComponent);
 begin
   if FList = nil then
     begin
@@ -145,7 +145,7 @@ end;
 
 { ProcQueue.TQueueEntry }
 
-constructor ProcQueue.TQueueEntry.Create(AProc: TProc; AOwner: TComponent);
+constructor ProcQueue.TQueueEntry.Create(const AProc: TProc; const AOwner: TComponent);
 begin
   Proc := AProc;
   { Create the handler if owner assigned }
