@@ -2,8 +2,6 @@ program TestProject;
 
 {$APPTYPE CONSOLE}
 
-{$R *.res}
-
 {$HINTS OFF}
 
 uses
