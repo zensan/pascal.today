@@ -63,9 +63,8 @@ begin
   for LType in FCtx.GetTypes do
     begin
       { Handle user filter }
-      if Assigned(AFilter) then
-        if not AFilter(LType) then
-          Continue;
+      if Assigned(AFilter) and not AFilter(LType) then
+        Continue;
 
       { Add only classes and interfaces }
       case LType.TypeKind of
