@@ -437,7 +437,7 @@ begin
     function (const L, R: T): Integer
     begin
       Result := LCmp.Compare(AFunc(L), AFunc(R));
-    end);
+    end, ADescending);
 end;
 
 function TComparerEx<T>.OrderByCustom(AFunc: TComparison<T>; ADescending: Boolean): IComparerEx<T>;
